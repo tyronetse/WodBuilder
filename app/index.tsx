@@ -108,6 +108,12 @@ export default function Library() {
                     <TouchableOpacity style={styles.iconButton} onPress={() => startRename(item)}>
                       <Text style={styles.iconText}>✎</Text>
                     </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.iconButton}
+                      onPress={() => router.push({ pathname: '/edit/[id]', params: { id: item.id } })}
+                    >
+                      <Text style={styles.iconText}>📝</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity style={styles.iconButton} onPress={() => onDelete(item.id)}>
                       <Text style={[styles.iconText, styles.deleteText]}>
                         {confirmDelete === item.id ? 'Sure?' : '✕'}
