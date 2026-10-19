@@ -30,6 +30,7 @@ export default function WorkoutPlayer() {
   const [weight, setWeight] = useState('');
   const [finished, setFinished] = useState(false);
   const [totalSec, setTotalSec] = useState(0);
+  const [confirmStop, setConfirmStop] = useState(false);
 
   const endsAtRef = useRef(0);
   const phaseRef = useRef<Phase | null>(null);
@@ -139,6 +140,29 @@ export default function WorkoutPlayer() {
     endsAtRef.current = Date.now(); // next tick completes the phase
   };
 
+  // Two-tap stop: first tap arms, second tap quits to the library.
+  // The arm resets on every phase change so it can't go off by accident.
+  useEffect(() => {
+    setConfirmStop(false);
+  }, [phaseIdx]);
+
+  const onStopPress = () => {
+    if (confirmStop) {
+      router.replace('/');
+    } else {
+      setConfirmStop(true);
+      setTimeout(() => setConfirmStop(false), 4000);
+    }
+  };
+
+  const stopButton = (
+    <TouchableOpacity style={styles.stopButton} onPress={onStopPress}>
+      <Text style={styles.stopText}>
+        {confirmStop ? 'Tap again to stop the workout' : 'Stop workout'}
+      </Text>
+    </TouchableOpacity>
+  );
+
   const shareSummary = async () => {
     const stored = await getWorkout(id ?? '');
     const msg =
@@ -232,6 +256,7 @@ export default function WorkoutPlayer() {
         <TouchableOpacity style={styles.ghostButton} onPress={submitLog}>
           <Text style={styles.ghostText}>Skip logging</Text>
         </TouchableOpacity>
+        {stopButton}
       </View>
     );
   }
@@ -264,6 +289,10 @@ export default function WorkoutPlayer() {
         <TouchableOpacity style={styles.ghostButton} onPress={endWorkEarly}>
           <Text style={styles.ghostText}>End set early</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.ghostButton} onPress={advance}>
+          <Text style={styles.ghostText}>Skip exercise</Text>
+        </TouchableOpacity>
+        {stopButton}
       </View>
     );
   }
@@ -280,6 +309,7 @@ export default function WorkoutPlayer() {
       <TouchableOpacity style={styles.primaryButton} onPress={advance}>
         <Text style={styles.primaryText}>Skip rest</Text>
       </TouchableOpacity>
+      {stopButton}
     </View>
   );
 }
@@ -309,6 +339,11 @@ const styles = StyleSheet.create({
   primaryText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
   ghostButton: { padding: 14, alignItems: 'center', marginTop: 4 },
   ghostText: { color: '#888', fontSize: 15 },
+  stopButton: {
+    borderWidth: 1, borderColor: '#e10600', borderRadius: 12,
+    padding: 14, alignItems: 'center', marginTop: 12,
+  },
+  stopText: { color: '#e10600', fontSize: 15, fontWeight: 'bold' },
   logRow2: { flexDirection: 'row', gap: 12, marginBottom: 8 },
   logField: { flex: 1 },
   logLabel: { color: '#999', fontSize: 14, marginBottom: 6 },
