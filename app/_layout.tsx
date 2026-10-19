@@ -1,5 +1,6 @@
-import { Stack } from 'expo-router';
+import { Link, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { StyleSheet } from 'react-native';
 
 export default function Layout() {
   return (
@@ -11,6 +12,11 @@ export default function Layout() {
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },
           contentStyle: { backgroundColor: '#000' },
+          headerTitle: ({ children }) => (
+            <Link href="/" style={styles.headerTitleLink}>
+              {children}
+            </Link>
+          ),
         }}
       >
         <Stack.Screen name="index" options={{ title: 'WodBuilder' }} />
@@ -24,3 +30,7 @@ export default function Layout() {
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  headerTitleLink: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+});
