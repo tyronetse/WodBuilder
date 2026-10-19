@@ -8,7 +8,6 @@ import {
   ScrollView,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
 import { parseWorkoutCSV, WorkoutDefinition } from '../src/csv';
 import { findUnknownExercises } from '../src/exercises';
 import { saveWorkout } from '../src/store';
@@ -38,9 +37,13 @@ export default function NewWorkout() {
   const [copied, setCopied] = useState(false);
 
   const onCopyPrompt = async () => {
-    await Clipboard.setStringAsync(AI_PROMPT);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(AI_PROMPT);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard unavailable — user can still select the text manually
+    }
   };
 
   // Accept a pre-built CSV (e.g. from the exercise picker).
