@@ -41,6 +41,8 @@ const VIDEO_MAP: Record<string, any> = {
   'Broad Jump': require('../assets/videos/broad-jump.mp4'),
   'Run': require('../assets/videos/run.mp4'),
   'Handstand Push-Up': require('../assets/videos/handstand-push-up.mp4'),
+  'Handstand Box Push-Up': require('../assets/videos/handstand-box-push-up.mp4'),
+  'Barbell Bench Press': require('../assets/videos/barbell-bench-press.mp4'),
 };
 
 export const EXERCISE_NAMES: string[] = Object.keys(VIDEO_MAP);
