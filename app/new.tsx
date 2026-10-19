@@ -12,7 +12,7 @@ import { parseWorkoutCSV, WorkoutDefinition } from '../src/csv';
 import { findUnknownExercises } from '../src/exercises';
 import { saveWorkout } from '../src/store';
 import { formatClock, estimateTotalSec } from '../src/engine';
-import { SAMPLE_CSV } from '../src/sample';
+import { SAMPLES } from '../src/sample';
 
 export default function NewWorkout() {
   const [csv, setCsv] = useState('');
@@ -59,14 +59,30 @@ export default function NewWorkout() {
         autoCapitalize="none"
         autoCorrect={false}
       />
-      <View style={styles.row}>
-        <TouchableOpacity style={styles.sampleButton} onPress={() => { setCsv(SAMPLE_CSV); setPreview(null); setError(null); }}>
-          <Text style={styles.sampleText}>Load sample</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.previewButton} onPress={onPreview}>
-          <Text style={styles.previewText}>Preview</Text>
-        </TouchableOpacity>
-      </View>
+      <Text style={styles.samplesLabel}>Or start from a sample:</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipsContent}
+      >
+        {SAMPLES.map((s) => (
+          <TouchableOpacity
+            key={s.name}
+            style={styles.chip}
+            onPress={() => {
+              setCsv(s.csv);
+              setPreview(null);
+              setError(null);
+            }}
+          >
+            <Text style={styles.chipName}>{s.name}</Text>
+            <Text style={styles.chipBlurb}>{s.blurb}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+      <TouchableOpacity style={styles.previewButton} onPress={onPreview}>
+        <Text style={styles.previewText}>Preview</Text>
+      </TouchableOpacity>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -114,15 +130,19 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     textAlignVertical: 'top',
   },
-  row: { flexDirection: 'row', marginTop: 12, gap: 12 },
-  sampleButton: {
-    flex: 1, borderWidth: 1, borderColor: '#444', borderRadius: 12, padding: 14, alignItems: 'center',
+  samplesLabel: { color: '#999', fontSize: 14, marginTop: 16, marginBottom: 8 },
+  chipsContent: { gap: 10, paddingRight: 16 },
+  chip: {
+    backgroundColor: '#141414', borderWidth: 1, borderColor: '#333',
+    borderRadius: 12, padding: 12, minWidth: 140,
   },
-  sampleText: { color: '#fff', fontWeight: 'bold' },
+  chipName: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  chipBlurb: { color: '#888', fontSize: 12, marginTop: 2 },
   previewButton: {
-    flex: 1, backgroundColor: '#e10600', borderRadius: 12, padding: 14, alignItems: 'center',
+    backgroundColor: '#e10600', borderRadius: 12, padding: 16,
+    alignItems: 'center', marginTop: 16,
   },
-  previewText: { color: '#fff', fontWeight: 'bold' },
+  previewText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   error: { color: '#ff6b6b', marginTop: 12, fontSize: 14 },
   card: { backgroundColor: '#141414', borderRadius: 12, padding: 16, marginTop: 16 },
   cardName: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 4 },
