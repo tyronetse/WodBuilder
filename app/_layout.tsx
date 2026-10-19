@@ -15,6 +15,7 @@ export default function Layout() {
       >
         <Stack.Screen name="index" options={{ title: 'WodBuilder' }} />
         <Stack.Screen name="new" options={{ title: 'New WOD' }} />
+        <Stack.Screen name="pick" options={{ title: 'Pick Exercises' }} />
         <Stack.Screen
           name="workout/[id]"
           options={{ title: 'Workout', headerBackTitle: 'Quit' }}
