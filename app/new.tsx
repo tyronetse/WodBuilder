@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { parseWorkoutCSV, WorkoutDefinition } from '../src/csv';
 import { findUnknownExercises } from '../src/exercises';
 import { saveWorkout } from '../src/store';
@@ -15,10 +15,20 @@ import { formatClock, estimateTotalSec } from '../src/engine';
 import { SAMPLES } from '../src/sample';
 
 export default function NewWorkout() {
+  const params = useLocalSearchParams<{ csv?: string }>();
   const [csv, setCsv] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<WorkoutDefinition | null>(null);
   const [unknown, setUnknown] = useState<string[]>([]);
+
+  // Accept a pre-built CSV (e.g. from the exercise picker).
+  useEffect(() => {
+    if (typeof params.csv === 'string' && params.csv.length > 0) {
+      setCsv(params.csv);
+      setPreview(null);
+      setError(null);
+    }
+  }, [params.csv]);
 
   const onPreview = () => {
     try {
