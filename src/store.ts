@@ -87,6 +87,28 @@ export async function renameWorkout(id: string, name: string): Promise<void> {
   }
 }
 
+export async function updateWorkoutCsv(
+  id: string,
+  csv: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  let def;
+  try {
+    def = parseWorkoutCSV(csv);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Invalid CSV.' };
+  }
+  const items = await listWorkouts();
+  const w = items.find((x) => x.id === id);
+  if (!w) return { ok: false, error: 'Workout not found.' };
+  w.csv = csv;
+  w.name = def.name;
+  w.rounds = def.rounds;
+  w.exerciseCount = def.exercises.length;
+  w.estSec = estimateTotalSec(def);
+  await AsyncStorage.setItem(WORKOUTS_KEY, JSON.stringify(items));
+  return { ok: true };
+}
+
 export async function logSession(
   workoutId: string,
   sets: SetLog[],
