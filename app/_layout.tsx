@@ -1,6 +1,7 @@
 import { Link, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
+import SoundToggle from './components/SoundToggle';
 
 export default function Layout() {
   return (
@@ -25,7 +26,11 @@ export default function Layout() {
         <Stack.Screen name="edit/[id]" options={{ title: 'Edit WOD' }} />
         <Stack.Screen
           name="workout/[id]"
-          options={{ title: 'Workout', headerBackTitle: 'Quit' }}
+          options={{
+            title: 'Workout',
+            headerBackTitle: 'Quit',
+            headerRight: () => <SoundToggle />,
+          }}
         />
       </Stack>
     </>
