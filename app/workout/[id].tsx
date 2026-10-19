@@ -72,7 +72,9 @@ export default function WorkoutPlayer() {
         /* video is a nice-to-have */
       }
     }
-  }, [phaseIdx]);
+    // Key on the video itself (not phaseIdx): on first load the phases arrive
+    // with phaseIdx still 0, so a phaseIdx dep never fires for exercise #1.
+  }, [workVideo]);
 
   // Countdown driver: anchored to a wall-clock end time so it stays accurate.
   useEffect(() => {
