@@ -277,6 +277,7 @@ export default function WorkoutPlayer() {
             player={player}
             nativeControls={false}
             contentFit="cover"
+            playsInline
           />
         ) : (
           <View style={[styles.video, styles.videoFallback]}>
