@@ -35,6 +35,12 @@ const VIDEO_MAP: Record<string, any> = {
   'Dumbbell Push Press': require('../assets/videos/dumbbell-push-press.mp4'),
   'Farmer Carry': require('../assets/videos/farmer-carry.mp4'),
   'Plank Shoulder Taps': require('../assets/videos/plank-shoulder-taps.mp4'),
+  'Single Unders': require('../assets/videos/single-unders.mp4'),
+  'Double Unders': require('../assets/videos/double-unders.mp4'),
+  'Box Jump': require('../assets/videos/box-jump.mp4'),
+  'Broad Jump': require('../assets/videos/broad-jump.mp4'),
+  'Run': require('../assets/videos/run.mp4'),
+  'Handstand Push-Up': require('../assets/videos/handstand-push-up.mp4'),
 };
 
 export const EXERCISE_NAMES: string[] = Object.keys(VIDEO_MAP);
