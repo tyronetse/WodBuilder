@@ -119,18 +119,6 @@ export default function NewWorkout() {
         <Text style={styles.previewText}>Preview</Text>
       </TouchableOpacity>
 
-      <View style={styles.tipCard}>
-        <Text style={styles.tipTitle}>💡 Don't have a CSV? Ask Muse AI to write one.</Text>
-        <Text style={styles.tipBody}>
-          Paste the prompt below into Muse (muse.ai), copy the CSV it gives you, and paste it into the
-          box above. Edit the workout description to fit your own equipment and goals.
-        </Text>
-        <Text style={styles.promptBox}>{AI_PROMPT}</Text>
-        <TouchableOpacity style={styles.copyButton} onPress={onCopyPrompt}>
-          <Text style={styles.copyText}>{copied ? 'Copied ✓' : 'Copy prompt'}</Text>
-        </TouchableOpacity>
-      </View>
-
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       {preview ? (
@@ -159,6 +147,18 @@ export default function NewWorkout() {
           </TouchableOpacity>
         </View>
       ) : null}
+
+      <View style={styles.tipCard}>
+        <Text style={styles.tipTitle}>💡 Don't have a CSV? Ask Muse AI to write one.</Text>
+        <Text style={styles.tipBody}>
+          Paste the prompt below into Muse (muse.ai), copy the CSV it gives you, and paste it into the
+          box above. Edit the workout description to fit your own equipment and goals.
+        </Text>
+        <Text style={styles.promptBox}>{AI_PROMPT}</Text>
+        <TouchableOpacity style={styles.copyButton} onPress={onCopyPrompt}>
+          <Text style={styles.copyText}>{copied ? 'Copied ✓' : 'Copy prompt'}</Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
