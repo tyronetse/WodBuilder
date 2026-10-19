@@ -130,6 +130,10 @@ export default function PickExercises() {
           Generate WOD{selected.size > 0 ? ` (${selected.size})` : ''}
         </Text>
       </TouchableOpacity>
+
+      <TouchableOpacity style={styles.homeButton} onPress={() => router.replace('/')}>
+        <Text style={styles.homeText}>Back to home</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -172,4 +176,6 @@ const styles = StyleSheet.create({
   },
   generateDisabled: { backgroundColor: '#3a3a3a' },
   generateText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+  homeButton: { padding: 14, alignItems: 'center', marginTop: 4 },
+  homeText: { color: '#888', fontSize: 15 },
 });
