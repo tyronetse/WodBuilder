@@ -1,0 +1,17 @@
+// Sample WOD preloaded on the New screen so the format is one tap away.
+
+export const SAMPLE_CSV = `# workout: Full Body HIIT
+# rounds: 2
+# rest_between_rounds_sec: 120
+exercise,duration_sec,rest_sec,target_reps,target_weight_lb
+Concept2 Row,45,30,,
+Kettlebell Goblet Squat,45,30,12,35
+Dumbbell Floor Press,45,30,12,50
+Box Step-Up,45,30,10,25
+Barbell Deadlift,45,30,8,135
+Pull-Up,45,30,8,
+Two-Hand Kettlebell Swing,45,30,15,35
+Dumbbell Push Press,45,30,10,40
+Farmer Carry,45,30,,
+Plank Shoulder Taps,45,30,20,
+`;
