@@ -76,6 +76,17 @@ export async function deleteWorkout(id: string): Promise<void> {
   );
 }
 
+export async function renameWorkout(id: string, name: string): Promise<void> {
+  const clean = name.trim();
+  if (!clean) return;
+  const items = await listWorkouts();
+  const w = items.find((x) => x.id === id);
+  if (w) {
+    w.name = clean;
+    await AsyncStorage.setItem(WORKOUTS_KEY, JSON.stringify(items));
+  }
+}
+
 export async function logSession(
   workoutId: string,
   sets: SetLog[],
