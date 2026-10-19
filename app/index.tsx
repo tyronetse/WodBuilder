@@ -42,6 +42,9 @@ export default function Library() {
       <TouchableOpacity style={styles.newButton} onPress={() => router.push('/new')}>
         <Text style={styles.newButtonText}>+ New WOD from CSV</Text>
       </TouchableOpacity>
+      <TouchableOpacity style={styles.pickButton} onPress={() => router.push('/pick')}>
+        <Text style={styles.pickButtonText}>Build from exercise list</Text>
+      </TouchableOpacity>
 
       {items.length === 0 ? (
         <View style={styles.empty}>
@@ -88,6 +91,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   newButtonText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+  pickButton: {
+    borderWidth: 1, borderColor: '#e10600', borderRadius: 12,
+    padding: 16, alignItems: 'center', marginBottom: 16,
+  },
+  pickButtonText: { color: '#e10600', fontSize: 16, fontWeight: 'bold' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   emptyTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 8 },
   emptyBody: { color: '#999', fontSize: 15, textAlign: 'center', lineHeight: 22 },
