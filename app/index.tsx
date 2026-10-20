@@ -114,6 +114,12 @@ export default function Library() {
                     >
                       <Text style={styles.iconText}>📝</Text>
                     </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.iconButton}
+                      onPress={() => router.push({ pathname: '/pick', params: { workoutId: item.id } })}
+                    >
+                      <Text style={styles.iconText}>☰</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity style={styles.iconButton} onPress={() => onDelete(item.id)}>
                       <Text style={[styles.iconText, styles.deleteText]}>
                         {confirmDelete === item.id ? 'Sure?' : '✕'}
