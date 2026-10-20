@@ -15,6 +15,7 @@ export default function Root({ children }: PropsWithChildren) {
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
         <ScrollViewStyleReset />
+        <title>WodBuilder</title>
         <link rel="apple-touch-icon" href="/WodBuilder/apple-touch-icon.png" />
         <link rel="icon" type="image/png" href="/WodBuilder/favicon.png" />
         <meta name="theme-color" content="#000000" />
