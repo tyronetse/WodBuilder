@@ -1,1 +1,22 @@
-{"expo":{"experiments":{"baseUrl":"/WodBuilder"},"ios":{"bundleIdentifier":"com.tyronetse.wodbuilder"},"name":"WodBuilder","plugins":["expo-router"],"scheme":"wodbuilder","slug":"wodbuilder","version":"1.0.0","web":{"bundler":"metro","output":"static"}}}
+{
+  "expo": {
+    "experiments": {
+      "baseUrl": "/WodBuilder"
+    },
+    "ios": {
+      "bundleIdentifier": "com.tyronetse.wodbuilder"
+    },
+    "name": "WodBuilder",
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "wodbuilder",
+    "slug": "wodbuilder",
+    "version": "1.0.0",
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "icon": "./assets/icon.png"
+  }
+}
