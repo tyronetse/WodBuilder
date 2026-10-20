@@ -23,6 +23,7 @@ exercise,duration_sec,rest_sec,target_reps,target_weight_lb
 <one row per exercise, e.g. Kettlebell Goblet Squat,45,30,12,35>
 
 Rules:
+- Keep the # at the start of the first three lines, exactly as shown
 - Only use these exercise names: Bicep Curl, Bicycle Crunch, Burpees, Calf Raise, Chin-Up, Crunch, Decline Push-Up, Diamond Push-Up, Dumbbell Row, Jump Squat, Lunge, Military Push-Up, Mountain Climbers, Plank, Pull-Up, Reverse Grip Chin-Up, Shoulder Press, Side Plank, Squat, Standard Push-Up, Tricep Extension, Wide Grip Pull-Up, Wide Push-Up, Concept2 Row, Kettlebell Goblet Squat, Dumbbell Floor Press, Box Step-Up, Barbell Deadlift, Two-Hand Kettlebell Swing, Dumbbell Push Press, Farmer Carry, Plank Shoulder Taps, Single Unders, Double Unders, Box Jump, Broad Jump, Run, Handstand Push-Up, Handstand Box Push-Up, Barbell Bench Press
 - Make it a 30-minute full-body HIIT: 2 rounds, 45 seconds work / 30 seconds rest per exercise, 120 seconds rest between rounds
 - Include target reps and target weight in pounds where it makes sense
