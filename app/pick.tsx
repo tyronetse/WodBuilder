@@ -52,33 +52,41 @@ function Stepper({
 }
 
 export default function PickExercises() {
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Ordered selection: exercises join the WOD in tap order, and the
+  // "Workout order" list below lets the user move them up/down.
+  const [order, setOrder] = useState<string[]>([]);
   const [rounds, setRounds] = useState(2);
   const [workSec, setWorkSec] = useState(45);
   const [restSec, setRestSec] = useState(30);
   const [roundRestSec, setRoundRestSec] = useState(120);
 
   const toggle = (name: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
+    setOrder((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
+    );
+  };
+
+  const selectAll = () => setOrder([...EXERCISE_NAMES]);
+  const clearAll = () => setOrder([]);
+
+  const move = (index: number, dir: -1 | 1) => {
+    setOrder((prev) => {
+      const next = [...prev];
+      const j = index + dir;
+      if (j < 0 || j >= next.length) return prev;
+      [next[index], next[j]] = [next[j], next[index]];
       return next;
     });
   };
 
-  const selectAll = () => setSelected(new Set(EXERCISE_NAMES));
-  const clearAll = () => setSelected(new Set());
-
   const generate = () => {
-    const names = EXERCISE_NAMES.filter((n) => selected.has(n));
-    if (names.length === 0) return;
+    if (order.length === 0) return;
     const lines = [
       '# workout: Custom WOD',
       `# rounds: ${rounds}`,
       `# rest_between_rounds_sec: ${roundRestSec}`,
       'exercise,duration_sec,rest_sec,target_reps,target_weight_lb',
-      ...names.map((n) => `${n},${workSec},${restSec},,`),
+      ...order.map((n) => `${n},${workSec},${restSec},,`),
     ];
     router.push({ pathname: '/new', params: { csv: lines.join('\n') } });
   };
@@ -97,7 +105,7 @@ export default function PickExercises() {
           <Text style={styles.selectAction}>Select all</Text>
         </TouchableOpacity>
         <Text style={styles.count}>
-          {selected.size} of {EXERCISE_NAMES.length} selected
+          {order.length} of {EXERCISE_NAMES.length} selected
         </Text>
         <TouchableOpacity onPress={clearAll}>
           <Text style={styles.selectAction}>Clear</Text>
@@ -109,25 +117,70 @@ export default function PickExercises() {
         keyExtractor={(n) => n}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => {
-          const checked = selected.has(item);
+          const checked = order.includes(item);
           return (
             <TouchableOpacity style={styles.row} onPress={() => toggle(item)}>
               <View style={[styles.box, checked && styles.boxChecked]}>
                 {checked ? <Text style={styles.check}>✓</Text> : null}
               </View>
               <Text style={styles.name}>{item}</Text>
+              {checked ? (
+                <Text style={styles.orderTag}>#{order.indexOf(item) + 1}</Text>
+              ) : null}
             </TouchableOpacity>
           );
         }}
       />
 
+      {order.length >= 2 ? (
+        <View style={styles.orderCard}>
+          <Text style={styles.orderTitle}>Workout order</Text>
+          <FlatList
+            data={order}
+            keyExtractor={(n) => n}
+            style={styles.orderList}
+            renderItem={({ item, index }) => (
+              <View style={styles.orderRow}>
+                <Text style={styles.orderNum}>{index + 1}.</Text>
+                <Text style={styles.orderName}>{item}</Text>
+                <View style={styles.orderBtns}>
+                  <TouchableOpacity
+                    style={[styles.orderBtn, index === 0 && styles.orderBtnDisabled]}
+                    onPress={() => move(index, -1)}
+                    disabled={index === 0}
+                  >
+                    <Text style={styles.orderBtnText}>↑</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.orderBtn,
+                      index === order.length - 1 && styles.orderBtnDisabled,
+                    ]}
+                    onPress={() => move(index, 1)}
+                    disabled={index === order.length - 1}
+                  >
+                    <Text style={styles.orderBtnText}>↓</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.orderBtn}
+                    onPress={() => toggle(item)}
+                  >
+                    <Text style={styles.orderBtnText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          />
+        </View>
+      ) : null}
+
       <TouchableOpacity
-        style={[styles.generateButton, selected.size === 0 && styles.generateDisabled]}
+        style={[styles.generateButton, order.length === 0 && styles.generateDisabled]}
         onPress={generate}
-        disabled={selected.size === 0}
+        disabled={order.length === 0}
       >
         <Text style={styles.generateText}>
-          Generate WOD{selected.size > 0 ? ` (${selected.size})` : ''}
+          Generate WOD{order.length > 0 ? ` (${order.length})` : ''}
         </Text>
       </TouchableOpacity>
 
@@ -169,7 +222,27 @@ const styles = StyleSheet.create({
   },
   boxChecked: { backgroundColor: '#e10600', borderColor: '#e10600' },
   check: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  name: { color: '#fff', fontSize: 16 },
+  name: { color: '#fff', fontSize: 16, flex: 1 },
+  orderTag: { color: '#e10600', fontSize: 14, fontWeight: 'bold' },
+  orderCard: {
+    backgroundColor: '#141414', borderWidth: 1, borderColor: '#333',
+    borderRadius: 12, padding: 12, marginTop: 8, maxHeight: 220,
+  },
+  orderTitle: { color: '#fff', fontSize: 15, fontWeight: 'bold', marginBottom: 8 },
+  orderList: { flexGrow: 0 },
+  orderRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 6,
+    borderBottomWidth: 1, borderBottomColor: '#222',
+  },
+  orderNum: { color: '#888', fontSize: 14, width: 28 },
+  orderName: { color: '#fff', fontSize: 15, flex: 1 },
+  orderBtns: { flexDirection: 'row', gap: 6 },
+  orderBtn: {
+    backgroundColor: '#2a2a2a', borderRadius: 8, width: 34, height: 34,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  orderBtnDisabled: { opacity: 0.3 },
+  orderBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   generateButton: {
     backgroundColor: '#e10600', borderRadius: 12, padding: 16,
     alignItems: 'center', marginTop: 8,
