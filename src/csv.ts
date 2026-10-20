@@ -9,6 +9,20 @@
 // Lines starting with # are workout setup (key: value). The first other line
 // is the header; exercise, duration_sec and rest_sec are required,
 // target_reps and target_weight_lb are optional.
+//
+// Tolerance: AI-generated CSVs sometimes drop the leading # on the setup
+// lines (e.g. "workout: Leg Day"). A line whose key matches a known setup key
+// is treated as setup even without the #.
+
+const META_KEYS = ['workout', 'rounds', 'rest_between_rounds_sec'];
+
+function metaKeyOf(line: string): string | null {
+  const body = (line.startsWith('#') ? line.slice(1) : line).trim();
+  const idx = body.indexOf(':');
+  if (idx <= 0) return null;
+  const key = body.slice(0, idx).trim().toLowerCase();
+  return META_KEYS.includes(key) ? key : null;
+}
 
 export interface WorkoutExercise {
   name: string;
@@ -66,8 +80,8 @@ export function parseWorkoutCSV(text: string): WorkoutDefinition {
   const meta: Record<string, string> = {};
   const rows: string[] = [];
   for (const line of lines) {
-    if (line.startsWith('#')) {
-      const body = line.slice(1).trim();
+    if (line.startsWith('#') || metaKeyOf(line) !== null) {
+      const body = (line.startsWith('#') ? line.slice(1) : line).trim();
       const idx = body.indexOf(':');
       if (idx > 0) {
         meta[body.slice(0, idx).trim().toLowerCase()] = body.slice(idx + 1).trim();
