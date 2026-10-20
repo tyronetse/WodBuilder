@@ -1,4 +1,5 @@
 import { Link, Stack } from 'expo-router';
+import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
 import SoundToggle from './components/SoundToggle';
@@ -6,6 +7,9 @@ import SoundToggle from './components/SoundToggle';
 export default function Layout() {
   return (
     <>
+      <Head>
+        <title>WodBuilder</title>
+      </Head>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
