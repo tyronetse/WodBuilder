@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,10 @@ import {
   TouchableOpacity,
   FlatList,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { EXERCISE_NAMES } from '../src/exercises';
+import { parseWorkoutCSV } from '../src/csv';
+import { getWorkout, updateWorkoutCsv } from '../src/store';
 
 function Stepper({
   label,
@@ -52,6 +54,7 @@ function Stepper({
 }
 
 export default function PickExercises() {
+  const params = useLocalSearchParams<{ workoutId?: string }>();
   // Ordered selection: exercises join the WOD in tap order, and the
   // "Workout order" list below lets the user move them up/down.
   const [order, setOrder] = useState<string[]>([]);
@@ -59,6 +62,43 @@ export default function PickExercises() {
   const [workSec, setWorkSec] = useState(45);
   const [restSec, setRestSec] = useState(30);
   const [roundRestSec, setRoundRestSec] = useState(120);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const [origTargets, setOrigTargets] = useState<
+    Record<string, { reps?: number; weight?: number }>
+  >({});
+
+  // Edit mode: pre-fill from a saved workout (its exercises in saved order,
+  // steppers from its first exercise — per-exercise times still live in the
+  // CSV editor for those who want them).
+  useEffect(() => {
+    if (!params.workoutId) return;
+    (async () => {
+      const w = await getWorkout(params.workoutId!);
+      if (!w) return;
+      try {
+        const def = parseWorkoutCSV(w.csv);
+        setOrder(def.exercises.map((e) => e.name));
+        setRounds(def.rounds);
+        setRoundRestSec(def.restBetweenRoundsSec);
+        if (def.exercises[0]) {
+          setWorkSec(def.exercises[0].durationSec);
+          setRestSec(def.exercises[0].restSec);
+        }
+        const targets: Record<string, { reps?: number; weight?: number }> = {};
+        for (const e of def.exercises) {
+          if (e.targetReps != null || e.targetWeightLb != null) {
+            targets[e.name] = { reps: e.targetReps, weight: e.targetWeightLb };
+          }
+        }
+        setOrigTargets(targets);
+        setEditingId(w.id);
+        setEditingName(def.name);
+      } catch {
+        // unparseable saved CSV — leave defaults; CSV editor can fix it
+      }
+    })();
+  }, [params.workoutId]);
 
   const toggle = (name: string) => {
     setOrder((prev) =>
@@ -82,17 +122,30 @@ export default function PickExercises() {
   const generate = () => {
     if (order.length === 0) return;
     const lines = [
-      '# workout: Custom WOD',
+      `# workout: ${editingId ? editingName : 'Custom WOD'}`,
       `# rounds: ${rounds}`,
       `# rest_between_rounds_sec: ${roundRestSec}`,
       'exercise,duration_sec,rest_sec,target_reps,target_weight_lb',
-      ...order.map((n) => `${n},${workSec},${restSec},,`),
+      ...order.map((n) => {
+        const t = origTargets[n];
+        return `${n},${workSec},${restSec},${t?.reps ?? ''},${t?.weight ?? ''}`;
+      }),
     ];
-    router.push({ pathname: '/new', params: { csv: lines.join('\n') } });
+    const csv = lines.join('\n');
+    if (editingId) {
+      updateWorkoutCsv(editingId, csv).then(() => router.back());
+    } else {
+      router.push({ pathname: '/new', params: { csv } });
+    }
   };
 
   return (
     <View style={styles.root}>
+      {editingId ? (
+        <Text style={styles.editingBanner}>
+          Editing “{editingName}” — reorder, add, or remove exercises, then Save changes.
+        </Text>
+      ) : null}
       <View style={styles.steppers}>
         <Stepper label="Rounds" value={rounds} unit="" min={1} max={10} step={1} onChange={setRounds} />
         <Stepper label="Work" value={workSec} unit="s" min={10} max={300} step={5} onChange={setWorkSec} />
@@ -180,7 +233,9 @@ export default function PickExercises() {
         disabled={order.length === 0}
       >
         <Text style={styles.generateText}>
-          Generate WOD{order.length > 0 ? ` (${order.length})` : ''}
+          {editingId
+            ? 'Save changes'
+            : `Generate WOD${order.length > 0 ? ` (${order.length})` : ''}`}
         </Text>
       </TouchableOpacity>
 
@@ -193,6 +248,9 @@ export default function PickExercises() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000', padding: 16 },
+  editingBanner: {
+    color: '#4cd964', fontSize: 14, fontWeight: 'bold', marginBottom: 10,
+  },
   steppers: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   stepper: {
     backgroundColor: '#141414', borderRadius: 10, padding: 8, flex: 1, minWidth: 100,
