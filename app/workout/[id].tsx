@@ -15,7 +15,7 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { getWorkout, logSession, SetLog } from '../../src/store';
 import { parseWorkoutCSV } from '../../src/csv';
 import { buildPhases, formatClock, Phase } from '../../src/engine';
-import { useTimerEndSound } from '../../src/audio';
+import { playEndSound, playStartSound } from '../../src/audio';
 
 export default function WorkoutPlayer() {
   useKeepAwake();
@@ -37,7 +37,6 @@ export default function WorkoutPlayer() {
   const logsRef = useRef<SetLog[]>([]);
   const [logs, setLogs] = useState<SetLog[]>([]);
   const startedAtRef = useRef(Date.now());
-  const playEndSound = useTimerEndSound();
 
   // Load + parse the workout once.
   useEffect(() => {
@@ -82,14 +81,19 @@ export default function WorkoutPlayer() {
     const dur = phase.durationSec;
     endsAtRef.current = Date.now() + dur * 1000;
     setSecondsLeft(dur);
+    // Start cue for every exercise — also the end-of-rest signal, since a
+    // rest phase always flows straight into the next work phase.
+    if (phase.kind === 'work') playStartSound();
     const t = setInterval(() => {
       const left = Math.max(0, Math.ceil((endsAtRef.current - Date.now()) / 1000));
       setSecondsLeft(left);
       if (left <= 0) {
         clearInterval(t);
-        playEndSound();
         const p = phaseRef.current;
         if (p?.kind === 'work') {
+          // End-of-exercise alarm (rest phases end silently here; the
+          // next phase's start cue covers them).
+          playEndSound();
           setReps(p.targetReps != null ? String(p.targetReps) : '');
           setWeight(p.targetWeightLb != null ? String(p.targetWeightLb) : '');
           setLogging(true);
