@@ -64,6 +64,8 @@ export default function PickExercises() {
   const [roundRestSec, setRoundRestSec] = useState(120);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  // Two-step flow: step 1 picks exercises, step 2 arranges the workout order.
+  const [step, setStep] = useState<1 | 2>(1);
   const [origTargets, setOrigTargets] = useState<
     Record<string, { reps?: number; weight?: number }>
   >({});
@@ -109,6 +111,11 @@ export default function PickExercises() {
   const selectAll = () => setOrder([...EXERCISE_NAMES]);
   const clearAll = () => setOrder([]);
 
+  // Nothing left to arrange — fall back to the pick step.
+  useEffect(() => {
+    if (order.length === 0 && step === 2) setStep(1);
+  }, [order.length, step]);
+
   const move = (index: number, dir: -1 | 1) => {
     setOrder((prev) => {
       const next = [...prev];
@@ -139,11 +146,74 @@ export default function PickExercises() {
     }
   };
 
+  if (step === 2) {
+    return (
+      <View style={styles.root}>
+        {editingId ? (
+          <Text style={styles.editingBanner}>
+            Editing “{editingName}” — arrange the order, then Save changes.
+          </Text>
+        ) : null}
+        <Text style={styles.orderScreenTitle}>Workout order</Text>
+        <Text style={styles.orderScreenSub}>
+          {rounds} rounds · {workSec}s work / {restSec}s rest · {roundRestSec}s between rounds
+        </Text>
+        <FlatList
+          data={order}
+          keyExtractor={(n) => n}
+          contentContainerStyle={styles.list}
+          renderItem={({ item, index }) => (
+            <View style={styles.orderRow}>
+              <Text style={styles.orderNum}>{index + 1}.</Text>
+              <Text style={styles.orderName}>{item}</Text>
+              <View style={styles.orderBtns}>
+                <TouchableOpacity
+                  style={[styles.orderBtn, index === 0 && styles.orderBtnDisabled]}
+                  onPress={() => move(index, -1)}
+                  disabled={index === 0}
+                >
+                  <Text style={styles.orderBtnText}>↑</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.orderBtn,
+                    index === order.length - 1 && styles.orderBtnDisabled,
+                  ]}
+                  onPress={() => move(index, 1)}
+                  disabled={index === order.length - 1}
+                >
+                  <Text style={styles.orderBtnText}>↓</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.orderBtn}
+                  onPress={() => toggle(item)}
+                >
+                  <Text style={styles.orderBtnText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        />
+        <TouchableOpacity style={styles.backButton} onPress={() => setStep(1)}>
+          <Text style={styles.backText}>← Back to exercises</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.generateButton} onPress={generate}>
+          <Text style={styles.generateText}>
+            {editingId ? 'Save changes' : `Generate WOD (${order.length})`}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.homeButton} onPress={() => router.replace('/')}>
+          <Text style={styles.homeText}>Back to home</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
       {editingId ? (
         <Text style={styles.editingBanner}>
-          Editing “{editingName}” — reorder, add, or remove exercises, then Save changes.
+          Editing “{editingName}” — pick exercises, then tap Next to arrange the order.
         </Text>
       ) : null}
       <View style={styles.steppers}>
@@ -185,57 +255,13 @@ export default function PickExercises() {
         }}
       />
 
-      {order.length >= 2 ? (
-        <View style={styles.orderCard}>
-          <Text style={styles.orderTitle}>Workout order</Text>
-          <FlatList
-            data={order}
-            keyExtractor={(n) => n}
-            style={styles.orderList}
-            renderItem={({ item, index }) => (
-              <View style={styles.orderRow}>
-                <Text style={styles.orderNum}>{index + 1}.</Text>
-                <Text style={styles.orderName}>{item}</Text>
-                <View style={styles.orderBtns}>
-                  <TouchableOpacity
-                    style={[styles.orderBtn, index === 0 && styles.orderBtnDisabled]}
-                    onPress={() => move(index, -1)}
-                    disabled={index === 0}
-                  >
-                    <Text style={styles.orderBtnText}>↑</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.orderBtn,
-                      index === order.length - 1 && styles.orderBtnDisabled,
-                    ]}
-                    onPress={() => move(index, 1)}
-                    disabled={index === order.length - 1}
-                  >
-                    <Text style={styles.orderBtnText}>↓</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.orderBtn}
-                    onPress={() => toggle(item)}
-                  >
-                    <Text style={styles.orderBtnText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-          />
-        </View>
-      ) : null}
-
       <TouchableOpacity
         style={[styles.generateButton, order.length === 0 && styles.generateDisabled]}
-        onPress={generate}
+        onPress={() => setStep(2)}
         disabled={order.length === 0}
       >
         <Text style={styles.generateText}>
-          {editingId
-            ? 'Save changes'
-            : `Generate WOD${order.length > 0 ? ` (${order.length})` : ''}`}
+          Next: Workout order{order.length > 0 ? ` (${order.length})` : ''}
         </Text>
       </TouchableOpacity>
 
@@ -282,14 +308,12 @@ const styles = StyleSheet.create({
   check: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   name: { color: '#fff', fontSize: 16, flex: 1 },
   orderTag: { color: '#e10600', fontSize: 14, fontWeight: 'bold' },
-  orderCard: {
-    backgroundColor: '#141414', borderWidth: 1, borderColor: '#333',
-    borderRadius: 12, padding: 12, marginTop: 8, maxHeight: 220,
-  },
-  orderTitle: { color: '#fff', fontSize: 15, fontWeight: 'bold', marginBottom: 8 },
-  orderList: { flexGrow: 0 },
+  orderScreenTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 4 },
+  orderScreenSub: { color: '#888', fontSize: 13, marginBottom: 10 },
+  backButton: { padding: 12, alignItems: 'center', marginTop: 4 },
+  backText: { color: '#e10600', fontSize: 15, fontWeight: 'bold' },
   orderRow: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 6,
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: '#222',
   },
   orderNum: { color: '#888', fontSize: 14, width: 28 },
