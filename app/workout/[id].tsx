@@ -171,9 +171,16 @@ export default function WorkoutPlayer() {
 
   const shareSummary = async () => {
     const stored = await getWorkout(id ?? '');
+    const detail = logsRef.current.map(
+      (l) =>
+        `R${l.round} · ${l.name}` +
+        (l.reps != null ? ` · ${l.reps} reps` : '') +
+        (l.weightLb != null ? ` · ${l.weightLb} lb` : '')
+    );
     const msg =
-      `Just crushed "${stored?.name ?? 'a WOD'}" on WodBuilder: ` +
-      `${logsRef.current.length} sets in ${formatClock(totalSec)}.`;
+      `🏋️ Workout complete — "${stored?.name ?? 'WOD'}" on WodBuilder\n` +
+      `${logsRef.current.length} sets · ${formatClock(totalSec)}\n\n` +
+      detail.join('\n');
     try {
       await Share.share({ message: msg });
     } catch {
