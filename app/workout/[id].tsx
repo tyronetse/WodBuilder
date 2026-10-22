@@ -13,7 +13,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useKeepAwake } from 'expo-keep-awake';
 import { getWorkout, logSession, SetLog } from '../../src/store';
-import { parseWorkoutCSV } from '../../src/csv';
+import { parseWorkoutCSV, WorkoutDefinition } from '../../src/csv';
 import { buildPhases, formatClock, Phase } from '../../src/engine';
 import { playEndSound, playStartSound } from '../../src/audio';
 
@@ -31,6 +31,16 @@ export default function WorkoutPlayer() {
   const [finished, setFinished] = useState(false);
   const [totalSec, setTotalSec] = useState(0);
   const [confirmStop, setConfirmStop] = useState(false);
+  // Preview-first flow: the workout opens read-only; the timer starts only
+  // when the user taps Start. Pause freezes the wall-clock countdown.
+  const [started, setStarted] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [def, setDef] = useState<WorkoutDefinition | null>(null);
+  const [wodName, setWodName] = useState('');
+  const [estSec, setEstSec] = useState(0);
+  const resumeLeftRef = useRef<number | null>(null);
+  const pausedAtRef = useRef(0);
+  const pausedTotalRef = useRef(0);
 
   const endsAtRef = useRef(0);
   const phaseRef = useRef<Phase | null>(null);
@@ -47,7 +57,11 @@ export default function WorkoutPlayer() {
           setLoadError('Workout not found.');
           return;
         }
-        setPhases(buildPhases(parseWorkoutCSV(stored.csv)));
+        const parsed = parseWorkoutCSV(stored.csv);
+        setDef(parsed);
+        setWodName(stored.name);
+        setEstSec(stored.estSec);
+        setPhases(buildPhases(parsed));
       } catch (e: any) {
         setLoadError(e?.message ?? 'Could not load workout.');
       }
@@ -64,26 +78,37 @@ export default function WorkoutPlayer() {
     p.muted = true;
   });
   useEffect(() => {
-    if (workVideo) {
-      try {
+    if (!workVideo || !started) return;
+    try {
+      if (paused) {
+        player.pause();
+      } else {
         player.play();
-      } catch {
-        /* video is a nice-to-have */
       }
+    } catch {
+      /* video is a nice-to-have */
     }
     // Key on the video itself (not phaseIdx): on first load the phases arrive
     // with phaseIdx still 0, so a phaseIdx dep never fires for exercise #1.
-  }, [workVideo]);
+  }, [workVideo, started, paused]);
 
   // Countdown driver: anchored to a wall-clock end time so it stays accurate.
   useEffect(() => {
-    if (!phase || phase.kind === 'done' || logging || finished) return;
-    const dur = phase.durationSec;
+    if (!phase || phase.kind === 'done' || logging || finished || !started) return;
+    if (paused) {
+      // Frozen: show the captured remaining time; no interval runs.
+      setSecondsLeft(resumeLeftRef.current ?? phase.durationSec);
+      return;
+    }
+    const isResume = resumeLeftRef.current != null;
+    const dur = resumeLeftRef.current ?? phase.durationSec;
+    resumeLeftRef.current = null;
     endsAtRef.current = Date.now() + dur * 1000;
     setSecondsLeft(dur);
     // Start cue for every exercise — also the end-of-rest signal, since a
-    // rest phase always flows straight into the next work phase.
-    if (phase.kind === 'work') playStartSound();
+    // rest phase always flows straight into the next work phase. Not
+    // replayed when resuming from pause.
+    if (phase.kind === 'work' && !isResume) playStartSound();
     const t = setInterval(() => {
       const left = Math.max(0, Math.ceil((endsAtRef.current - Date.now()) / 1000));
       setSecondsLeft(left);
@@ -104,10 +129,37 @@ export default function WorkoutPlayer() {
     }, 250);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phaseIdx, logging, phases, finished]);
+  }, [phaseIdx, logging, phases, finished, started, paused]);
+
+  const startWorkout = () => {
+    startedAtRef.current = Date.now();
+    setStarted(true);
+  };
+
+  const togglePause = () => {
+    if (paused) {
+      pausedTotalRef.current += Date.now() - pausedAtRef.current;
+      setPaused(false);
+    } else {
+      resumeLeftRef.current = Math.max(
+        0,
+        Math.ceil((endsAtRef.current - Date.now()) / 1000)
+      );
+      pausedAtRef.current = Date.now();
+      setPaused(true);
+    }
+  };
+
+  const pauseButton = (
+    <TouchableOpacity style={styles.pauseButton} onPress={togglePause}>
+      <Text style={styles.pauseText}>{paused ? '▶ Resume' : '⏸ Pause'}</Text>
+    </TouchableOpacity>
+  );
 
   const advance = () => {
     setLogging(false);
+    setPaused(false);
+    resumeLeftRef.current = null;
     setPhaseIdx((i) => {
       const next = i + 1;
       if (phases && next < phases.length && phases[next].kind === 'done') {
@@ -118,7 +170,9 @@ export default function WorkoutPlayer() {
   };
 
   const finishWorkout = async () => {
-    const secs = Math.round((Date.now() - startedAtRef.current) / 1000);
+    const secs = Math.round(
+      (Date.now() - startedAtRef.current - pausedTotalRef.current) / 1000
+    );
     setTotalSec(secs);
     try {
       await logSession(id ?? '', logsRef.current, secs);
@@ -143,6 +197,14 @@ export default function WorkoutPlayer() {
   };
 
   const endWorkEarly = () => {
+    if (paused) {
+      // No interval is running while paused; resume with 0 left so the
+      // next tick completes the phase immediately.
+      resumeLeftRef.current = 0;
+      pausedTotalRef.current += Date.now() - pausedAtRef.current;
+      setPaused(false);
+      return;
+    }
     endsAtRef.current = Date.now(); // next tick completes the phase
   };
 
@@ -228,6 +290,40 @@ export default function WorkoutPlayer() {
     );
   }
 
+  // ---- Preview (read-only) before the workout starts ----
+  if (!started && def) {
+    return (
+      <ScrollView style={styles.root} contentContainerStyle={styles.overview}>
+        <Text style={styles.ovTitle}>{wodName}</Text>
+        <Text style={styles.ovMeta}>
+          {def.rounds} round{def.rounds === 1 ? '' : 's'} · {def.exercises.length}{' '}
+          exercises · ~{formatClock(estSec)}
+        </Text>
+        {def.exercises.map((e, i) => (
+          <View key={i} style={styles.ovRow}>
+            <Text style={styles.ovName}>
+              {i + 1}. {e.name}
+            </Text>
+            <Text style={styles.ovDetail}>
+              {e.durationSec}s work · {e.restSec}s rest
+              {e.targetReps != null ? ` · ${e.targetReps} reps` : ''}
+              {e.targetWeightLb != null ? ` · ${e.targetWeightLb} lb` : ''}
+            </Text>
+          </View>
+        ))}
+        <TouchableOpacity style={styles.primaryButton} onPress={startWorkout}>
+          <Text style={styles.primaryText}>Start workout</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.homeButton}
+          onPress={() => router.replace('/')}
+        >
+          <Text style={styles.homeText}>Back to library</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  }
+
   // ---- Log reps/weight between work and rest ----
   if (logging && phase.kind === 'work') {
     return (
@@ -296,10 +392,12 @@ export default function WorkoutPlayer() {
           </View>
         )}
         <Text style={styles.timer}>{formatClock(secondsLeft)}</Text>
+        {paused ? <Text style={styles.pausedLabel}>PAUSED</Text> : null}
         <Text style={styles.targetLine}>
           {phase.targetReps != null ? `${phase.targetReps} reps` : 'AMRAP'}
           {phase.targetWeightLb != null ? ` · ${phase.targetWeightLb} lb` : ''}
         </Text>
+        {pauseButton}
         <TouchableOpacity style={styles.ghostButton} onPress={endWorkEarly}>
           <Text style={styles.ghostText}>End set early</Text>
         </TouchableOpacity>
@@ -319,7 +417,9 @@ export default function WorkoutPlayer() {
     <View style={[styles.root, styles.restRoot]}>
       <Text style={styles.phaseLabel}>{restTitle}</Text>
       <Text style={styles.timer}>{formatClock(secondsLeft)}</Text>
+      {paused ? <Text style={styles.pausedLabel}>PAUSED</Text> : null}
       <Text style={styles.targetLine}>{restSub}</Text>
+      {pauseButton}
       <TouchableOpacity style={styles.primaryButton} onPress={advance}>
         <Text style={styles.primaryText}>Skip rest</Text>
       </TouchableOpacity>
@@ -369,6 +469,23 @@ const styles = StyleSheet.create({
   doneTitle: { color: '#4cd964', fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
   doneMeta: { color: '#ccc', fontSize: 16, textAlign: 'center', marginBottom: 20 },
   logRow: { color: '#ddd', fontSize: 15, marginTop: 6 },
+  overview: { paddingBottom: 40 },
+  ovTitle: { color: '#fff', fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 6 },
+  ovMeta: { color: '#999', fontSize: 15, textAlign: 'center', marginBottom: 20 },
+  ovRow: {
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#1a1a1a',
+  },
+  ovName: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+  ovDetail: { color: '#999', fontSize: 14, marginTop: 2 },
+  pauseButton: {
+    borderWidth: 1, borderColor: '#888', borderRadius: 12,
+    padding: 14, alignItems: 'center', marginTop: 4, marginBottom: 4,
+  },
+  pauseText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  pausedLabel: {
+    color: '#ffb340', fontSize: 16, fontWeight: 'bold', textAlign: 'center',
+    letterSpacing: 2, marginBottom: 8,
+  },
   shareButton: {
     backgroundColor: '#e10600', borderRadius: 12, padding: 16,
     alignItems: 'center', marginTop: 28,
