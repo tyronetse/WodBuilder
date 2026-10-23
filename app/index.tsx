@@ -58,6 +58,9 @@ export default function Library() {
       <TouchableOpacity style={styles.pickButton} onPress={() => router.push('/pick')}>
         <Text style={styles.pickButtonText}>Build from exercise list</Text>
       </TouchableOpacity>
+      <TouchableOpacity style={styles.historyButton} onPress={() => router.push('/history')}>
+        <Text style={styles.historyButtonText}>📜 Workout history</Text>
+      </TouchableOpacity>
 
       {items.length === 0 ? (
         <View style={styles.empty}>
@@ -151,6 +154,11 @@ const styles = StyleSheet.create({
     padding: 16, alignItems: 'center', marginBottom: 16,
   },
   pickButtonText: { color: '#e10600', fontSize: 16, fontWeight: 'bold' },
+  historyButton: {
+    borderWidth: 1, borderColor: '#444', borderRadius: 12,
+    padding: 14, alignItems: 'center', marginBottom: 16,
+  },
+  historyButtonText: { color: '#ddd', fontSize: 15, fontWeight: 'bold' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   emptyTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 8 },
   emptyBody: { color: '#999', fontSize: 15, textAlign: 'center', lineHeight: 22 },
