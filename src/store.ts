@@ -131,3 +131,17 @@ export async function getHistory(workoutId: string): Promise<SessionLog[]> {
   const history = await readJSON<Record<string, SessionLog[]>>(HISTORY_KEY, {});
   return history[workoutId] ?? [];
 }
+
+export interface HistoryEntry extends SessionLog {
+  workoutId: string;
+}
+
+// Every recorded session across all workouts, newest first.
+export async function getAllHistory(): Promise<HistoryEntry[]> {
+  const history = await readJSON<Record<string, SessionLog[]>>(HISTORY_KEY, {});
+  const all: HistoryEntry[] = [];
+  for (const [workoutId, sessions] of Object.entries(history)) {
+    for (const s of sessions) all.push({ ...s, workoutId });
+  }
+  return all.sort((a, b) => b.completedAt - a.completedAt);
+}
