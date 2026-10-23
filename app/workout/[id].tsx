@@ -12,10 +12,21 @@ import {
 import { useLocalSearchParams, router } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useKeepAwake } from 'expo-keep-awake';
-import { getWorkout, logSession, SetLog } from '../../src/store';
+import { getWorkout, getHistory, logSession, SessionLog, SetLog } from '../../src/store';
 import { parseWorkoutCSV, WorkoutDefinition } from '../../src/csv';
 import { buildPhases, formatClock, Phase } from '../../src/engine';
 import { playEndSound, playStartSound } from '../../src/audio';
+
+function formatWhen(ts: number): string {
+  const d = new Date(ts);
+  const date = d.toLocaleDateString(undefined, {
+    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+  });
+  const time = d.toLocaleTimeString(undefined, {
+    hour: 'numeric', minute: '2-digit',
+  });
+  return `${date} · ${time}`;
+}
 
 export default function WorkoutPlayer() {
   useKeepAwake();
@@ -38,6 +49,8 @@ export default function WorkoutPlayer() {
   const [def, setDef] = useState<WorkoutDefinition | null>(null);
   const [wodName, setWodName] = useState('');
   const [estSec, setEstSec] = useState(0);
+  const [history, setHistory] = useState<SessionLog[]>([]);
+  const [expandedHist, setExpandedHist] = useState<number | null>(null);
   const resumeLeftRef = useRef<number | null>(null);
   const pausedAtRef = useRef(0);
   const pausedTotalRef = useRef(0);
@@ -61,6 +74,7 @@ export default function WorkoutPlayer() {
         setDef(parsed);
         setWodName(stored.name);
         setEstSec(stored.estSec);
+        setHistory(await getHistory(id ?? ''));
         setPhases(buildPhases(parsed));
       } catch (e: any) {
         setLoadError(e?.message ?? 'Could not load workout.');
@@ -299,6 +313,9 @@ export default function WorkoutPlayer() {
           {def.rounds} round{def.rounds === 1 ? '' : 's'} · {def.exercises.length}{' '}
           exercises · ~{formatClock(estSec)}
         </Text>
+        <TouchableOpacity style={styles.primaryButton} onPress={startWorkout}>
+          <Text style={styles.primaryText}>Start workout</Text>
+        </TouchableOpacity>
         {def.exercises.map((e, i) => (
           <View key={i} style={styles.ovRow}>
             <Text style={styles.ovName}>
@@ -311,9 +328,43 @@ export default function WorkoutPlayer() {
             </Text>
           </View>
         ))}
-        <TouchableOpacity style={styles.primaryButton} onPress={startWorkout}>
-          <Text style={styles.primaryText}>Start workout</Text>
-        </TouchableOpacity>
+        <Text style={styles.ovSection}>Past sessions</Text>
+        {history.length === 0 ? (
+          <Text style={styles.ovEmpty}>
+            Not done yet — finished sessions will appear here.
+          </Text>
+        ) : (
+          history.slice(0, 10).map((s, i) => {
+            const open = expandedHist === i;
+            return (
+              <View key={s.completedAt} style={styles.histCard}>
+                <TouchableOpacity
+                  onPress={() => setExpandedHist(open ? null : i)}
+                >
+                  <Text style={styles.histWhen}>{formatWhen(s.completedAt)}</Text>
+                  <Text style={styles.histMeta}>
+                    {formatClock(s.durationSec)} · {s.sets.length} sets
+                    {open ? '  ▴' : '  ▾'}
+                  </Text>
+                </TouchableOpacity>
+                {open
+                  ? s.sets.map((set, j) => (
+                      <Text key={j} style={styles.histSet}>
+                        R{set.round} · {set.name}
+                        {set.reps != null ? ` · ${set.reps} reps` : ''}
+                        {set.weightLb != null ? ` · ${set.weightLb} lb` : ''}
+                      </Text>
+                    ))
+                  : null}
+              </View>
+            );
+          })
+        )}
+        {history.length > 10 ? (
+          <Text style={styles.ovEmpty}>
+            Showing the latest 10 of {history.length} sessions.
+          </Text>
+        ) : null}
         <TouchableOpacity
           style={styles.homeButton}
           onPress={() => router.replace('/')}
@@ -486,6 +537,12 @@ const styles = StyleSheet.create({
     color: '#ffb340', fontSize: 16, fontWeight: 'bold', textAlign: 'center',
     letterSpacing: 2, marginBottom: 8,
   },
+  ovSection: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginTop: 28, marginBottom: 10 },
+  ovEmpty: { color: '#777', fontSize: 14, marginBottom: 8 },
+  histCard: { backgroundColor: '#141414', borderRadius: 12, padding: 14, marginBottom: 10 },
+  histWhen: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  histMeta: { color: '#999', fontSize: 14, marginTop: 3 },
+  histSet: { color: '#ddd', fontSize: 14, marginTop: 6 },
   shareButton: {
     backgroundColor: '#e10600', borderRadius: 12, padding: 16,
     alignItems: 'center', marginTop: 28,
